@@ -1,23 +1,17 @@
-
-//
-// mon.c
-//
-// Copyright (c) 2012 TJ Holowaychuk <tj@vision-media.ca>
-//
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <assert.h>
-#include <string.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <stdint.h>
 #include <stdbool.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/wait.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include "commander.h"
 #include "ms.h"
 
@@ -62,23 +56,22 @@ static monitor_t monitor;
  * Logger.
  */
 
-#define log(fmt, args...) \
-  do { \
-    if (prefix) { \
+#define log(fmt, args...)                             \
+  do {                                                \
+    if (prefix) {                                     \
       printf("mon : %s : " fmt "\n", prefix, ##args); \
-      fflush(stdout); \
-    } else { \
-      printf("mon : " fmt "\n", ##args); \
-      fflush(stdout); \
-    } \
-  } while(0)
+      fflush(stdout);                                 \
+    } else {                                          \
+      printf("mon : " fmt "\n", ##args);              \
+      fflush(stdout);                                 \
+    }                                                 \
+  } while (0)
 
 /*
  * Output error `msg`.
  */
 
-void
-error(char *msg) {
+void error(char *msg) {
   fprintf(stderr, "Error: %s\n", msg);
   exit(1);
 }
@@ -87,8 +80,7 @@ error(char *msg) {
  * Check if process of `pid` is alive.
  */
 
-int
-alive(pid_t pid) {
+int alive(pid_t pid) {
   return 0 == kill(pid, 0);
 }
 
@@ -101,15 +93,14 @@ timestamp() {
   struct timeval tv;
   int ret = gettimeofday(&tv, NULL);
   if (-1 == ret) return -1;
-  return (int64_t) ((int64_t) tv.tv_sec * 1000 + (int64_t) tv.tv_usec / 1000);
+  return (int64_t)((int64_t)tv.tv_sec * 1000 + (int64_t)tv.tv_usec / 1000);
 }
 
 /*
  * Write `pid` to `file`.
  */
 
-void
-write_pidfile(const char *file, pid_t pid) {
+void write_pidfile(const char *file, pid_t pid) {
   char buf[32] = {0};
   snprintf(buf, 32, "%d", pid);
   int fd = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
@@ -122,8 +113,7 @@ write_pidfile(const char *file, pid_t pid) {
  * Read pid `file`.
  */
 
-pid_t
-read_pidfile(const char *file) {
+pid_t read_pidfile(const char *file) {
   off_t size;
   struct stat s;
 
@@ -156,8 +146,7 @@ read_pidfile(const char *file) {
  * Output status of `pidfile`.
  */
 
-void
-show_status_of(const char *pidfile) {
+void show_status_of(const char *pidfile) {
   off_t size;
   struct stat s;
 
@@ -188,7 +177,7 @@ show_status_of(const char *pidfile) {
 
   struct timeval t;
   gettimeofday(&t, NULL);
-  time_t now = t.tv_sec;
+  time_t now  = t.tv_sec;
   time_t secs = now - modified;
 
   // status
@@ -209,9 +198,8 @@ show_status_of(const char *pidfile) {
  * Redirect stdio to `file`.
  */
 
-void
-redirect_stdio_to(const char *file) {
-  int logfd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0755);
+void redirect_stdio_to(const char *file) {
+  int logfd  = open(file, O_WRONLY | O_CREAT | O_APPEND, 0755);
   int nullfd = open("/dev/null", O_RDONLY, 0);
 
   if (-1 == logfd) {
@@ -233,8 +221,7 @@ redirect_stdio_to(const char *file) {
  * Graceful exit, signal process group.
  */
 
-void
-graceful_exit(int sig) {
+void graceful_exit(int sig) {
   int status;
   pid_t pid = getpid();
   log("shutting down");
@@ -250,8 +237,7 @@ graceful_exit(int sig) {
  * Daemonize the program.
  */
 
-void
-daemonize() {
+void daemonize() {
   if (fork()) exit(0);
 
   if (setsid() < 0) {
@@ -264,8 +250,7 @@ daemonize() {
  * Invoke the --on-restart command.
  */
 
-void
-exec_restart_command(monitor_t *monitor, pid_t pid) {
+void exec_restart_command(monitor_t *monitor, pid_t pid) {
   char buf[1024] = {0};
   snprintf(buf, 1024, "%s %d", monitor->on_restart, pid);
   log("on restart `%s`", buf);
@@ -277,8 +262,7 @@ exec_restart_command(monitor_t *monitor, pid_t pid) {
  * Invoke the --on-error command.
  */
 
-void
-exec_error_command(monitor_t *monitor, pid_t pid) {
+void exec_error_command(monitor_t *monitor, pid_t pid) {
   char buf[1024] = {0};
   snprintf(buf, 1024, "%s %d", monitor->on_error, pid);
   log("on error `%s`", buf);
@@ -302,14 +286,13 @@ ms_since_last_restart(monitor_t *monitor) {
  * have been exceeded and return 1, 0 otherwise.
  */
 
-int
-attempts_exceeded(monitor_t *monitor, int64_t ms) {
+int attempts_exceeded(monitor_t *monitor, int64_t ms) {
   monitor->attempts++;
   monitor->clock -= ms;
 
   // reset
   if (monitor->clock <= 0) {
-    monitor->clock = 60000;
+    monitor->clock    = 60000;
     monitor->attempts = 0;
     return 0;
   }
@@ -324,69 +307,68 @@ attempts_exceeded(monitor_t *monitor, int64_t ms) {
  * Monitor the given `cmd`.
  */
 
-void
-start(const char *cmd, monitor_t *monitor) {
-exec: {
+void start(const char *cmd, monitor_t *monitor) {
+exec : {
   pid_t pid = fork();
   int status;
 
   switch (pid) {
-    case -1:
-      perror("fork()");
-      exit(1);
-    case 0:
-      signal(SIGTERM, SIG_DFL);
-      signal(SIGQUIT, SIG_DFL);
-      log("sh -c \"%s\"", cmd);
-      execl("/bin/sh", "sh", "-c", cmd, 0);
-      perror("execl()");
-      exit(1);
-    default:
-      log("child %d", pid);
+  case -1:
+    perror("fork()");
+    exit(1);
+  case 0:
+    signal(SIGTERM, SIG_DFL);
+    signal(SIGQUIT, SIG_DFL);
+    log("sh -c \"%s\"", cmd);
+    execl("/bin/sh", "sh", "-c", cmd, 0);
+    perror("execl()");
+    exit(1);
+  default:
+    log("child %d", pid);
 
-      // write pidfile
-      if (monitor->pidfile) {
-        log("write pid to %s", monitor->pidfile);
-        write_pidfile(monitor->pidfile, pid);
-      }
+    // write pidfile
+    if (monitor->pidfile) {
+      log("write pid to %s", monitor->pidfile);
+      write_pidfile(monitor->pidfile, pid);
+    }
 
-      // wait for exit
-      waitpid(pid, &status, 0);
+    // wait for exit
+    waitpid(pid, &status, 0);
 
-      // signalled
-      if (WIFSIGNALED(status)) {
-        log("signal(%s)", strsignal(WTERMSIG(status)));
-        log("sleep(%d)", monitor->sleepsec);
-        sleep(monitor->sleepsec);
-        goto error;
-      }
+    // signalled
+    if (WIFSIGNALED(status)) {
+      log("signal(%s)", strsignal(WTERMSIG(status)));
+      log("sleep(%d)", monitor->sleepsec);
+      sleep(monitor->sleepsec);
+      goto error;
+    }
 
-      // check status
-      if (WEXITSTATUS(status)) {
-        log("exit(%d)", WEXITSTATUS(status));
-        log("sleep(%d)", monitor->sleepsec);
-        sleep(monitor->sleepsec);
-        goto error;
-      }
+    // check status
+    if (WEXITSTATUS(status)) {
+      log("exit(%d)", WEXITSTATUS(status));
+      log("sleep(%d)", monitor->sleepsec);
+      sleep(monitor->sleepsec);
+      goto error;
+    }
 
-      // restart
-      error: {
-        if (monitor->on_restart) exec_restart_command(monitor, pid);
-        int64_t ms = ms_since_last_restart(monitor);
-        monitor->last_restart_at = timestamp();
-        log("last restart %s ago", milliseconds_to_long_string(ms));
-        log("%d attempts remaining", monitor->max_attempts - monitor->attempts);
+  // restart
+  error : {
+    if (monitor->on_restart) exec_restart_command(monitor, pid);
+    int64_t ms               = ms_since_last_restart(monitor);
+    monitor->last_restart_at = timestamp();
+    log("last restart %s ago", milliseconds_to_long_string(ms));
+    log("%d attempts remaining", monitor->max_attempts - monitor->attempts);
 
-        if (attempts_exceeded(monitor, ms)) {
-          char *time = milliseconds_to_long_string(60000 - monitor->clock);
-          log("%d restarts within %s, bailing", monitor->max_attempts, time);
-          if (monitor->on_error) exec_error_command(monitor, pid);
-          log("bye :)");
-          exit(2);
-        }
+    if (attempts_exceeded(monitor, ms)) {
+      char *time = milliseconds_to_long_string(60000 - monitor->clock);
+      log("%d restarts within %s, bailing", monitor->max_attempts, time);
+      if (monitor->on_error) exec_error_command(monitor, pid);
+      log("bye :)");
+      exit(2);
+    }
 
-        goto exec;
-      }
+    goto exec;
+  }
   }
 }
 }
@@ -397,8 +379,8 @@ exec: {
 
 static void
 on_log(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
-  monitor->logfile = self->arg;
+  monitor_t *monitor = (monitor_t *)self->data;
+  monitor->logfile   = self->arg;
 }
 
 /*
@@ -407,8 +389,8 @@ on_log(command_t *self) {
 
 static void
 on_sleep(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
-  monitor->sleepsec = atoi(self->arg);
+  monitor_t *monitor = (monitor_t *)self->data;
+  monitor->sleepsec  = atoi(self->arg);
 }
 
 /*
@@ -417,8 +399,8 @@ on_sleep(command_t *self) {
 
 static void
 on_daemonize(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
-  monitor->daemon = 1;
+  monitor_t *monitor = (monitor_t *)self->data;
+  monitor->daemon    = 1;
 }
 
 /*
@@ -427,8 +409,8 @@ on_daemonize(command_t *self) {
 
 static void
 on_pidfile(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
-  monitor->pidfile = self->arg;
+  monitor_t *monitor = (monitor_t *)self->data;
+  monitor->pidfile   = self->arg;
 }
 
 /*
@@ -437,7 +419,7 @@ on_pidfile(command_t *self) {
 
 static void
 on_mon_pidfile(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
+  monitor_t *monitor   = (monitor_t *)self->data;
   monitor->mon_pidfile = self->arg;
 }
 
@@ -447,7 +429,7 @@ on_mon_pidfile(command_t *self) {
 
 static void
 on_status(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
+  monitor_t *monitor   = (monitor_t *)self->data;
   monitor->show_status = true;
 }
 
@@ -466,7 +448,7 @@ on_prefix(command_t *self) {
 
 static void
 on_restart(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
+  monitor_t *monitor  = (monitor_t *)self->data;
   monitor->on_restart = self->arg;
 }
 
@@ -476,8 +458,8 @@ on_restart(command_t *self) {
 
 static void
 on_error(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
-  monitor->on_error = self->arg;
+  monitor_t *monitor = (monitor_t *)self->data;
+  monitor->on_error  = self->arg;
 }
 
 /*
@@ -486,7 +468,7 @@ on_error(command_t *self) {
 
 static void
 on_attempts(command_t *self) {
-  monitor_t *monitor = (monitor_t *) self->data;
+  monitor_t *monitor    = (monitor_t *)self->data;
   monitor->max_attempts = atoi(self->arg);
 }
 
@@ -494,24 +476,23 @@ on_attempts(command_t *self) {
  * [options] <cmd>
  */
 
-int
-main(int argc, char **argv){
-  monitor.pidfile = NULL;
-  monitor.mon_pidfile = NULL;
-  monitor.on_restart = NULL;
-  monitor.on_error = NULL;
-  monitor.logfile = "mon.log";
-  monitor.daemon = 0;
-  monitor.sleepsec = 1;
-  monitor.max_attempts = 10;
-  monitor.attempts = 0;
+int main(int argc, char **argv) {
+  monitor.pidfile         = NULL;
+  monitor.mon_pidfile     = NULL;
+  monitor.on_restart      = NULL;
+  monitor.on_error        = NULL;
+  monitor.logfile         = "mon.log";
+  monitor.daemon          = 0;
+  monitor.sleepsec        = 1;
+  monitor.max_attempts    = 10;
+  monitor.attempts        = 0;
   monitor.last_restart_at = 0;
-  monitor.clock = 60000;
-  monitor.show_status = false;
+  monitor.clock           = 60000;
+  monitor.show_status     = false;
 
   command_t program;
   command_init(&program, "mon", VERSION);
-  program.data = &monitor;
+  program.data  = &monitor;
   program.usage = "[options] <command>";
   command_option(&program, "-l", "--log <path>", "specify logfile [mon.log]", on_log);
   command_option(&program, "-s", "--sleep <sec>", "sleep seconds before re-executing [1]", on_sleep);

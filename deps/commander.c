@@ -1,14 +1,8 @@
-
-//
-// commander.c
-//
-// Copyright (c) 2012 TJ Holowaychuk <tj@vision-media.ca>
-//
-
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
 #include "commander.h"
 
 /*
@@ -35,8 +29,7 @@ command_version(command_t *self) {
  * Output command help.
  */
 
-void
-command_help(command_t *self) {
+void command_help(command_t *self) {
   printf("\n");
   printf("  Usage: %s %s\n", self->name, self->usage);
   printf("\n");
@@ -44,10 +37,7 @@ command_help(command_t *self) {
   printf("\n");
   for (int i = 0; i < self->option_count; ++i) {
     command_option_t *option = &self->options[i];
-    printf("    %s, %-25s %s\n"
-      , option->small
-      , option->large_with_arg
-      , option->description);
+    printf("    %s, %-25s %s\n", option->small, option->large_with_arg, option->description);
   }
   printf("\n");
   exit(0);
@@ -57,14 +47,13 @@ command_help(command_t *self) {
  * Initialize with program `name` and `version`.
  */
 
-void
-command_init(command_t *self, const char *name, const char *version) {
-  self->arg = NULL;
-  self->name = name;
-  self->version = version;
+void command_init(command_t *self, const char *name, const char *version) {
+  self->arg          = NULL;
+  self->name         = name;
+  self->version      = version;
   self->option_count = self->argc = 0;
-  self->usage = "[options]";
-  self->nargv = NULL;
+  self->usage                     = "[options]";
+  self->nargv                     = NULL;
   command_option(self, "-V", "--version", "output program version", command_version);
   command_option(self, "-h", "--help", "output help information", command_help);
 }
@@ -73,8 +62,7 @@ command_init(command_t *self, const char *name, const char *version) {
  * Free up commander after use.
  */
 
-void
-command_free(command_t *self) {
+void command_free(command_t *self) {
   for (int i = 0; i < self->option_count; ++i) {
     command_option_t *option = &self->options[i];
     free(option->argname);
@@ -97,14 +85,14 @@ command_free(command_t *self) {
 
 static void
 parse_argname(const char *str, char *flag, char *arg) {
-  int buffer = 0;
+  int buffer     = 0;
   size_t flagpos = 0;
-  size_t argpos = 0;
-  size_t len = strlen(str);
+  size_t argpos  = 0;
+  size_t len     = strlen(str);
 
   for (int i = 0; i < len; ++i) {
     if (buffer || '[' == str[i] || '<' == str[i]) {
-      buffer = 1;
+      buffer        = 1;
       arg[argpos++] = str[i];
     } else {
       if (' ' == str[i]) continue;
@@ -112,7 +100,7 @@ parse_argname(const char *str, char *flag, char *arg) {
     }
   }
 
-  arg[argpos] = '\0';
+  arg[argpos]   = '\0';
   flag[flagpos] = '\0';
 }
 
@@ -124,13 +112,13 @@ parse_argname(const char *str, char *flag, char *arg) {
 
 static char **
 normalize_args(int *argc, char **argv) {
-  int size = 0;
-  int alloc = *argc + 1;
+  int size     = 0;
+  int alloc    = *argc + 1;
   char **nargv = malloc(alloc * sizeof(char *));
 
   for (int i = 0; argv[i]; ++i) {
     const char *arg = argv[i];
-    int len = strlen(arg);
+    int len         = strlen(arg);
 
     // short flag
     if (len > 2 && '-' == arg[0] && !strchr(arg + 1, '-')) {
@@ -151,7 +139,7 @@ normalize_args(int *argc, char **argv) {
   }
 
   nargv[size] = NULL;
-  *argc = size;
+  *argc       = size;
   return nargv;
 }
 
@@ -159,17 +147,16 @@ normalize_args(int *argc, char **argv) {
  * Define an option.
  */
 
-void
-command_option(command_t *self, const char *small, const char *large, const char *desc, command_callback_t cb) {
+void command_option(command_t *self, const char *small, const char *large, const char *desc, command_callback_t cb) {
   int n = self->option_count++;
   if (n == COMMANDER_MAX_OPTIONS) error("Maximum option definitions exceeded");
   command_option_t *option = &self->options[n];
-  option->cb = cb;
-  option->small = small;
-  option->description = desc;
+  option->cb               = cb;
+  option->small            = small;
+  option->description      = desc;
   option->required_arg = option->optional_arg = 0;
-  option->large_with_arg = large;
-  option->argname = malloc(strlen(large) + 1);
+  option->large_with_arg                      = large;
+  option->argname                             = malloc(strlen(large) + 1);
   assert(option->argname);
   option->large = malloc(strlen(large) + 1);
   assert(option->large);
@@ -234,8 +221,8 @@ command_parse_args(command_t *self, int argc, char **argv) {
 
     int n = self->argc++;
     if (n == COMMANDER_MAX_ARGS) error("Maximum number of arguments exceeded");
-    self->argv[n] = (char *) arg;
-    match:;
+    self->argv[n] = (char *)arg;
+  match:;
   }
 }
 
@@ -243,8 +230,7 @@ command_parse_args(command_t *self, int argc, char **argv) {
  * Parse `argv` (public).
  */
 
-void
-command_parse(command_t *self, int argc, char **argv) {
+void command_parse(command_t *self, int argc, char **argv) {
   self->nargv = normalize_args(&argc, argv);
   command_parse_args(self, argc, self->nargv);
 }
